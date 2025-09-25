@@ -1,0 +1,8 @@
+jupyterlab
+transformers
+torch
+mteb
+datasets
+llama-index-embeddings-huggingface
+llama-index
+mteb
