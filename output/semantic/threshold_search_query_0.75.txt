@@ -1,0 +1,11 @@
+Chunking Type: semantic
+User query/keyword: Where did Michael Jordan play basketball at?
+Threshold/topK: 0.75
+
+
+Chunks: 
+
+
+ANSWER
+
+The provided context does not mention where Michael Jordan played basketball. Therefore, I cannot answer that question based on the given information.

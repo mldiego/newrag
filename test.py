@@ -15,41 +15,50 @@ import random
 import numpy as np
 
 
-def chunking(chunk_type,*args):
+def chunking(chunk_type,text):
+    # Initialize 
+    tokenizer = AutoTokenizer.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
+    model = AutoModel.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
+    inputs = tokenizer(text, return_tensors='pt')
+    model_output = model(**inputs)
+    # Choose chunking + embeddings
     if chunk_type=='semantic':
-        embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+        embedding_model = OllamaEmbeddings(model="mxbai-embed-large")
         chunker = SemanticChunker(
-            embeddings,
+            embedding_model,
             breakpoint_threshold_type="percentile"
         )
+        chunks,spans = split_with_spans(text, chunker)
+        embeddings = chunked_pooling(model_output, [spans])[0]
     elif chunk_type=='late':
-        # load model and tokenizer
-        tokenizer = AutoTokenizer.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
-        model = AutoModel.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
-
-# Text to chunk
-        pass
-    elif chunk_type=='hierarchical':
-        print("To be implemented")
+        chunks, spans = chunk_by_sentences(text, tokenizer)
+        embeddings = chunked_pooling(model_output, [spans])[0]
+    elif chunk_type=='traditional':
+        chunks, spans = chunk_by_sentences(text, tokenizer)
+        encodings = model.encode(chunks)
+        embeddings = []
+        for j in range(encodings.shape[0]):
+            embeddings.append(encodings[j])
+        # embeddings = chunks
+    # elif chunk_type=='hierarchical':
+    #     print("To be implemented")
     else:
         return "Chunker not implemented yet"
+    return chunks, embeddings
     
 
 # FOR STORING EMBEDDINGS AND SEARCH
 class MockVectorStore:
-    def __init__(self, docs, embedding_model, tokenizer):
+    def __init__(self, docs, embedding_model, chunk_type):
         self.docs = docs
         self.chunks = []
         self.embeddings = []
         self.model = embedding_model
         # chunk afterwards (context-sensitive chunked pooling) - latent
         for text in docs:
-            chunks, span_annotations = chunk_by_sentences(text, tokenizer)
+            chunks, embeddings = chunking(chunk_type, text)
             for i in chunks:
                 self.chunks.append(i)
-            inputs = tokenizer(text, return_tensors='pt')
-            model_output = embedding_model(**inputs)
-            embeddings = chunked_pooling(model_output, [span_annotations])[0]
             for emb in embeddings:
                 self.embeddings.append(emb)
 
@@ -120,6 +129,84 @@ def split_with_spans(text, chunker):
     return chunks,spans
 
 
+# save results
+def save_output_file(chunk_type, query, arg1, results, answer = None, default_filename="output.txt"):
+    base_name, extension = os.path.splitext(default_filename)
+    filename = default_filename
+    counter = 1
+
+    while os.path.exists(filename):
+        filename = f"{base_name}_{counter}{extension}"
+        counter += 1
+
+    data = "Chunking Type: "+ chunk_type + "\n" + "User query/keyword: " + query + "\n" + "Threshold/topK: " + str(arg1) + "\n"
+
+    with open(filename, 'w') as f:
+        f.write(data)
+        f.write("\n\n")
+        f.write("Chunks: \n")
+        for r in results:
+            f.write(" - " + r+"\n")
+        if answer:
+            f.write("\n\nANSWER\n\n")
+            f.write(answer)
+    print(f"Data saved to: {filename}")
+    return 
+
+
+
+#############################################
+##############  Ollama chat  ################
+#############################################
+
+def ollama_rag_request(model_name: str, context: str, user_query: str):
+    """
+    Sends a request to a local Ollama model with context and a user query
+    and prints the model's response.
+    
+    Args:
+        model_name: The name of the model to use (e.g., 'llama3').
+        context: The specific context/document retrieved from the RAG system.
+        user_query: The question from the user.
+    """
+    # 1. Define the RAG prompt structure
+    # The system role is used to provide instructions and the context.
+    SEPARATOR = "\n\n--- DOCUMENT CHUNK ---\n\n"
+    full_context = SEPARATOR.join(context)
+    system_message = (
+        f"You are an expert Q&A assistant. Use ONLY the following context to answer the user's question. "
+        f"If the answer cannot be found in the context, state that explicitly. "
+        f"Context: {full_context}"
+    )
+
+    # 2. Prepare the messages list for the ollama.chat endpoint
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": user_query}
+    ]
+
+    print(f"--- Sending request to model: {model_name} ---")
+
+    # 3. Call the Ollama API
+    try:
+        response = ollama.chat(
+            model=model_name,
+            messages=messages
+        )
+
+        # 4. Print the final response content
+        # print("\n--- Model Response ---")
+        # print(response['message']['content'])
+        # print("----------------------")
+        
+    except Exception as e:
+        print(f"\nError connecting to Ollama: {e}")
+        print("Please ensure the Ollama server is running and the specified model is pulled.")
+        print("e.g., Run 'ollama pull llama3' in your terminal.")
+
+    return response['message']['content']
+
+
 #######################################
 ###########     DATA      #############
 #######################################
@@ -182,3 +269,62 @@ documents = [
     mj,
     s065,
 ]
+
+# load model and tokenizer
+tokenizer = AutoTokenizer.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
+model = AutoModel.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
+
+# define chunk types
+chunk_types = ["late","semantic","traditional"]
+# define user queries
+user_query = ["Where did Michael Jordan play basketball at?", "Describe data content and validation for s065", "What are the main branches of computer science?", "Where is Paris?", "Who is Berlin?", "What is the capital of Germany?"]
+# define search keywords
+keywords = ["Michael Jordan", "basketball", "data content", "validation", "computer science", "branches", "Paris", "capital", "Germany"]
+# define number of chunks to retrieve
+topK = [3,4,5]
+# threshold value to search
+threshold = [0.8, 0.75, 0.7, 0.65]
+
+
+# llm for answering based on chunks
+llm = "qwen3:4b-instruct-2507-q4_K_M"
+
+import ollama
+
+
+
+for ct in chunk_types:
+    # Create vector store
+    print("Chunk type : "+ ct)
+    vector_store = MockVectorStore(documents, model, ct)
+    for uq in user_query:
+        print("User query : "+ uq)
+        for th in threshold:
+            print("Threshold : "+str(th))
+            # threshold search
+            results = vector_store.threshold_search(uq, th)
+            answer = ollama_rag_request(llm,results,uq)
+            save_output_file(ct, uq, th, results, answer, default_filename="output/"+ct+"/threshold_search_query_"+str(th)+".txt")
+        for k in topK:
+            print("TopK : "+str(k))
+            # top_k search
+            results = vector_store.semantic_search(uq, k)
+            answer = ollama_rag_request(llm,results,uq)
+            save_output_file(ct, uq, k, results, answer, default_filename="output/"+ct+"/topk_search_query_"+str(k)+".txt")
+    # for kw in user_query:
+    #     print("Keyword query : "+ kw)
+    #     for th in threshold:
+    #         print("Threshold : "+str(th))
+    #         # threshold search
+    #         results = vector_store.threshold_search(kw, th)
+    #         answer = ollama_rag_request(llm,results,uq)
+    #         save_output_file(ct, kw, th, results, default_filename="output/"+ct+"/threshold_search_keyword_"+str(th)+".txt")
+    #     for k in topK:
+    #         print("TopK : "+str(k))
+    #         # top_k search
+    #         results = vector_store.semantic_search(kw, k)
+    #         answer = ollama_rag_request(llm,results,uq)
+    #         save_output_file(ct, kw, k, results, default_filename="output/"+ct+"/topk_search_keyword_"+str(k)+".txt")
+
+
+

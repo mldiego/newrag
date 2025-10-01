@@ -1,0 +1,74 @@
+Chunking Type: traditional
+User query/keyword: Describe data content and validation for s065
+Threshold/topK: 0.7
+
+
+Chunks: 
+ - 
+Generated S065-Style Standard Document Text
+TITLE: S065-B/SRD — Automated System Interface and Data Validation Standard, Revision 2.1
+
+1.0 INTRODUCTION AND SCOPE
+
+This document, S065-B/SRD, defines the mandatory technical specifications and operational protocols for the secure, automated transfer of clinical trial data between sponsor systems and the central regulatory body's database.
+ - 
+
+3.0 DATA CONTENT AND VALIDATION
+
+3.1 Patient-Reported Outcomes (PROs)
+
+PRO data must adhere to the CDISC SDTM standard, version 1.6.
+ -  All data exchanges must be formatted in accordance with the HL7 FHIR standard, version R4, with specific profiles as detailed in Section 3.2.
+ -  This document supersedes and replaces all previous versions of S065-A/SRD.
+ -  Data integrity is paramount, and non-compliance with these specifications will result in an automated rejection of the data submission.
+ -  Non-compliance with this standard, including but not limited to repeated failed submissions or data integrity issues, may lead to a formal investigation and potential suspension of the sponsor's data submission privileges.
+ -  The data must include the batch number, expiration date, and a detailed record of the product dispensed, returned, or destroyed.
+ -  The scope of this standard encompasses all data streams related to Protocol 734-X, specifically focusing on patient-reported outcomes (PROs), adverse event reporting (AERs), and investigational product accountability (IPA) logs.
+ -  Each data stream must be accompanied by a digital signature using an SHA-256 hash and a Public Key Infrastructure (PKI) certificate issued by the approved Certificate Authority (CA) as designated in Appendix A.
+ -  A logical check will be performed to ensure that all response values fall within the permissible range for the specified instrument.
+ -  Any out-of-range values will be flagged, and the entire batch will be returned for correction with a detailed error report.
+ -  Each record must include a unique patient identifier, the date of response, and the specific instrument used (e.g., EQ-5D-5L, QLQ-C30).
+ -  Any discrepancy greater than a 2% variance must be justified in a separate discrepancy report submitted alongside the data.
+ -  Failure to provide a valid justification will result in an official compliance notice.
+ - 
+
+2.2 File Transmission and Archiving
+
+Data payloads shall be transmitted as a compressed JSON file, with a maximum size of 50 MB per transmission.
+ - 
+
+4.0 GOVERNANCE AND COMPLIANCE
+
+This standard is subject to periodic review and revision.
+
+
+ANSWER
+
+The data content and validation for S065-B/SRD are as follows:
+
+1. **Patient-Reported Outcomes (PROs)**:
+   - PRO data must adhere to the CDISC SDTM standard, version 1.6.
+
+2. **Data Format and Standardization**:
+   - All data exchanges must be formatted in accordance with the HL7 FHIR standard, version R4, with specific profiles detailed in Section 3.2.
+
+3. **Data Content Requirements**:
+   - Each record must include a unique patient identifier, the date of response, and the specific instrument used (e.g., EQ-5D-5L, QLQ-C3-0).
+   - The data must include the batch number, expiration date, and a detailed record of the product dispensed, returned, or destroyed.
+   - The scope of this standard includes all data streams related to Protocol 734-X, specifically focusing on patient-reported outcomes (PROs), adverse event reporting (AERs), and investigational product accountability (IPA) logs.
+
+4. **Validation and Integrity Checks**:
+   - A logical check ensures that all response values fall within the permissible range for the specified instrument. Any out-of-range values will be flagged, and the entire batch will be returned for correction with a detailed error report.
+   - Any discrepancy greater than a 2% variance must be justified in a separate discrepancy report submitted alongside the data. Failure to provide a valid justification will result in an official compliance notice.
+   - Data integrity is paramount, and non-compliance with these specifications will result in an automated rejection of the data submission.
+
+5. **Security and Authentication**:
+   - Each data stream must be accompanied by a digital signature using an SHA-256 hash and a Public Key Infrastructure (PKI) certificate issued by the approved Certificate Authority (CA) as designated in Appendix A.
+
+6. **Transmission Requirements**:
+   - Data payloads shall be transmitted as a compressed JSON file, with a maximum size of 50 MB per transmission.
+
+7. **Compliance and Consequences**:
+   - Non-compliance with this standard, including but not limited to repeated failed submissions or data integrity issues, may lead to a formal investigation and potential suspension of the sponsor's data submission privileges.
+
+This standard supersedes all previous versions of S065-A/SRD and is subject to periodic review and revision.

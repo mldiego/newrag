@@ -1,0 +1,18 @@
+Chunking Type: traditional
+User query/keyword: Describe data content and validation for s065
+Threshold/topK: 0.8
+
+
+Chunks: 
+ - 
+Generated S065-Style Standard Document Text
+TITLE: S065-B/SRD — Automated System Interface and Data Validation Standard, Revision 2.1
+
+1.0 INTRODUCTION AND SCOPE
+
+This document, S065-B/SRD, defines the mandatory technical specifications and operational protocols for the secure, automated transfer of clinical trial data between sponsor systems and the central regulatory body's database.
+
+
+ANSWER
+
+The provided context does not contain specific information about the data content or validation procedures for S065-B/SRD. It only states that the document defines mandatory technical specifications and operational protocols for the secure, automated transfer of clinical trial data. To accurately describe data content and validation, additional details from the full document would be required.

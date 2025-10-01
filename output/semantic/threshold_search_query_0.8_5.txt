@@ -1,0 +1,11 @@
+Chunking Type: semantic
+User query/keyword: What is the capital of Germany?
+Threshold/topK: 0.8
+
+
+Chunks: 
+
+
+ANSWER
+
+The capital of Germany is Berlin.

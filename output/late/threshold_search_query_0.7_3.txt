@@ -1,0 +1,11 @@
+Chunking Type: late
+User query/keyword: Where is Paris?
+Threshold/topK: 0.7
+
+
+Chunks: 
+
+
+ANSWER
+
+Paris is the capital city of France, located in the north-central part of the country, on the Seine River. It is situated in Western Europe and is one of the most famous cities in the world.

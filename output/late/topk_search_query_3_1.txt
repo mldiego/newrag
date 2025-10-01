@@ -1,0 +1,14 @@
+Chunking Type: late
+User query/keyword: Describe data content and validation for s065
+Threshold/topK: 3
+
+
+Chunks: 
+ -  All data exchanges must be formatted in accordance with the HL7 FHIR standard, version R4, with specific profiles as detailed in Section 3.2.
+ -  Data integrity is paramount, and non-compliance with these specifications will result in an automated rejection of the data submission.
+ -  Each data stream must be accompanied by a digital signature using an SHA-256 hash and a Public Key Infrastructure (PKI) certificate issued by the approved Certificate Authority (CA) as designated in Appendix A.
+
+
+ANSWER
+
+The provided context does not contain any information about data content and validation for "s065." While it mentions general requirements such as adherence to the HL7 FHIR standard (version R4), data integrity, digital signatures using SHA-256 and PKI, and compliance with specific profiles, there is no detail regarding the specific data content or validation rules for s065. Therefore, based on the available information, the data content and validation for s065 cannot be described.

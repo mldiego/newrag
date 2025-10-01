@@ -1,0 +1,12 @@
+Chunking Type: traditional
+User query/keyword: Who is Berlin?
+Threshold/topK: 0.75
+
+
+Chunks: 
+ - Berlin is the capital and largest city of Germany, both by area and by population.
+
+
+ANSWER
+
+Berlin is the capital and largest city of Germany, both by area and by population.

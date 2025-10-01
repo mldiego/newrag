@@ -1,0 +1,12 @@
+Chunking Type: traditional
+User query/keyword: What is the capital of Germany?
+Threshold/topK: 0.8
+
+
+Chunks: 
+ - Berlin is the capital and largest city of Germany, both by area and by population.
+
+
+ANSWER
+
+The capital of Germany is Berlin.
