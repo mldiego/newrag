@@ -2,6 +2,11 @@ import os
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
 
+# chunk by words/chars
+import nltk
+nltk.download('punkt')
+from nltk.tokenize import sent_tokenize, word_tokenize
+
 # For late chunking
 from transformers import AutoModel
 from transformers import AutoTokenizer
@@ -15,7 +20,7 @@ import random
 import numpy as np
 
 
-def chunking(chunk_type,text):
+def chunking(chunk_type,text,*args):
     # Initialize 
     tokenizer = AutoTokenizer.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
     model = AutoModel.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
@@ -39,13 +44,85 @@ def chunking(chunk_type,text):
         embeddings = []
         for j in range(encodings.shape[0]):
             embeddings.append(encodings[j])
-        # embeddings = chunks
-    # elif chunk_type=='hierarchical':
-    #     print("To be implemented")
+    elif chunk_type=="words":
+        # length = args[0]
+        # overlap = args=[1]
+        chunks = chunk_text_by_words(text)
+        encodings = model.encode(chunks)
+        embeddings = []
+        for j in range(encodings.shape[0]):
+            embeddings.append(encodings[j])
+    elif chunk_type=="chars":
+        # length = args[0]
+        # overlap = args=[1]
+        chunks = chunk_text(text)
+        encodings = model.encode(chunks)
+        embeddings = []
+        for j in range(encodings.shape[0]):
+            embeddings.append(encodings[j])
     else:
-        return "Chunker not implemented yet"
+        return "Chunk method not implemented yet"
     return chunks, embeddings
-    
+
+
+def chunk_text_by_words(
+    text: str, 
+    chunk_size: int = 512,  # max words per chunk
+    chunk_overlap: int = 64 # desired word chunk_overlap
+) -> list:
+
+    # split text into sentences and tokenize them into words directly
+    sentences = [word_tokenize(sent) for sent in sent_tokenize(text.strip()) if sent.strip()]
+
+    chunks = []
+    current_chunk = []
+    current_word_count = 0
+
+    for sentence_words in sentences:
+        sentence_length = len(sentence_words)
+
+        if current_word_count + sentence_length <= chunk_size:
+            # add sentence to current chunk if within limit
+            current_chunk.extend(sentence_words)
+            current_word_count += sentence_length
+        else:
+            # finalize current chunk
+            if current_chunk:
+                chunks.append(' '.join(current_chunk))
+
+            # handle chunk_overlap
+            current_chunk = current_chunk[-chunk_overlap:] if chunk_overlap > 0 else []
+            current_word_count = len(current_chunk)
+
+            # add current sentence to new chunk
+            if sentence_length <= chunk_size:
+                current_chunk.extend(sentence_words)
+                current_word_count += sentence_length
+            else:
+                # handle oversized sentence
+                chunks.append(' '.join(sentence_words))
+                current_chunk = []
+                current_word_count = 0
+
+    # add any remaining words as the final chunk
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+
+    return chunks
+
+def chunk_text(text: str, 
+    chunk_size: int = 1024, # max characters per chunk
+    chunk_overlap: int = 128 # desired character chunk_overlap
+    ) -> list:
+    chunks = []
+    start = 0
+    text_length = len(text)
+    while start < text_length:
+        end = min(start + chunk_size, text_length)
+        chunk = text[start:end]
+        chunks.append(chunk)
+        start += (chunk_size - chunk_overlap)
+    return chunks
 
 # FOR STORING EMBEDDINGS AND SEARCH
 class MockVectorStore:
@@ -275,11 +352,11 @@ tokenizer = AutoTokenizer.from_pretrained('jinaai/jina-embeddings-v2-base-en', t
 model = AutoModel.from_pretrained('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
 
 # define chunk types
-chunk_types = ["late","semantic","traditional"]
+chunk_types = ["late","semantic","traditional","words", "chars"]
 # define user queries
 user_query = ["Where did Michael Jordan play basketball at?", "Describe data content and validation for s065", "What are the main branches of computer science?", "Where is Paris?", "Who is Berlin?", "What is the capital of Germany?"]
 # define search keywords
-keywords = ["Michael Jordan", "basketball", "data content", "validation", "computer science", "branches", "Paris", "capital", "Germany"]
+keywords = [("Michael Jordan",0), ("basketball",0), ("data content",1), ("validation",1), ("computer science",2), ("main branches",2), ("Paris",3), ("Who Berlin",4), ("capital",5), ("Germany",5)]
 # define number of chunks to retrieve
 topK = [3,4,5]
 # threshold value to search
@@ -311,20 +388,20 @@ for ct in chunk_types:
             results = vector_store.semantic_search(uq, k)
             answer = ollama_rag_request(llm,results,uq)
             save_output_file(ct, uq, k, results, answer, default_filename="output/"+ct+"/topk_search_query_"+str(k)+".txt")
-    # for kw in user_query:
-    #     print("Keyword query : "+ kw)
-    #     for th in threshold:
-    #         print("Threshold : "+str(th))
-    #         # threshold search
-    #         results = vector_store.threshold_search(kw, th)
-    #         answer = ollama_rag_request(llm,results,uq)
-    #         save_output_file(ct, kw, th, results, default_filename="output/"+ct+"/threshold_search_keyword_"+str(th)+".txt")
-    #     for k in topK:
-    #         print("TopK : "+str(k))
-    #         # top_k search
-    #         results = vector_store.semantic_search(kw, k)
-    #         answer = ollama_rag_request(llm,results,uq)
-    #         save_output_file(ct, kw, k, results, default_filename="output/"+ct+"/topk_search_keyword_"+str(k)+".txt")
+    for kw,qn in keywords:
+        print("Keyword query : "+ kw)
+        for th in threshold:
+            print("Threshold : "+str(th))
+            # threshold search
+            results = vector_store.threshold_search(kw, th)
+            answer = ollama_rag_request(llm,results,user_query[qn])
+            save_output_file(ct, kw, th, results, default_filename="output/"+ct+"/threshold_search_keyword_"+str(th)+".txt")
+        for k in topK:
+            print("TopK : "+str(k))
+            # top_k search
+            results = vector_store.semantic_search(kw, k)
+            answer = ollama_rag_request(llm,results,user_query[qn])
+            save_output_file(ct, kw, k, results, default_filename="output/"+ct+"/topk_search_keyword_"+str(k)+".txt")
 
 
 
